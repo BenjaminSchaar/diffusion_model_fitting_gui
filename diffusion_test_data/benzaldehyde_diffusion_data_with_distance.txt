@@ -1,0 +1,26 @@
+Benzaldehyde Diffusion Assay Data (Absorbance to Concentration in mol/L)
+
+30 mins
+  Distance: 11 mm | Absorbance: 0.877888889 -> Concentration: 0.0119
+  Distance: 13 mm | Absorbance: 0.088000000 -> Concentration: 0.0014
+  Distance: 15 mm | Absorbance: 0.030888889 -> Concentration: 0.0006
+  Distance: 17 mm | Absorbance: 0.009666667 -> Concentration: 0.0003
+  Distance: 19 mm | Absorbance: 0.010111111 -> Concentration: 0.0003
+
+60 mins
+  Distance: 11 mm | Absorbance: 0.869888889 -> Concentration: 0.0118
+  Distance: 13 mm | Absorbance: 0.350888889 -> Concentration: 0.0049
+  Distance: 15 mm | Absorbance: 0.050222222 -> Concentration: 0.0009
+  Distance: 17 mm | Absorbance: 0.027111111 -> Concentration: 0.0005
+  Distance: 19 mm | Absorbance: 0.019066667 -> Concentration: 0.0004
+
+120 mins
+  Distance: 11 mm | Absorbance: 0.883555556 -> Concentration: 0.0120
+  Distance: 13 mm | Absorbance: 0.502111111 -> Concentration: 0.0069
+  Distance: 15 mm | Absorbance: 0.135666667 -> Concentration: 0.0020
+  Distance: 17 mm | Absorbance: 0.063444444 -> Concentration: 0.0010
+  Distance: 19 mm | Absorbance: 0.017333333 -> Concentration: 0.0004
+
+Linear fit parameters:
+  Slope: 74.63
+  Intercept: -0.01335
