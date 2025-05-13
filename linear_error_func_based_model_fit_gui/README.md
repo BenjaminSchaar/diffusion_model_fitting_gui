@@ -41,7 +41,6 @@ C(z,t) = \frac{C_0}{2} \left[ \operatorname{erf}\!\biggl(\frac{l - z}{\sqrt{4 D 
 - \(C_0\): Surface concentration at \(t=0\) (mol/L).  
 - \(l\): Slab half-thickness (m).  
 - \(z\): Depth coordinate from the center (m).  
-- \(\operatorname{erf}(x)\): Gauss error function.  
 
 ### Non-linear Least Squares Fit
 For each time snapshot \(t_i\) with measured concentrations \(C_{ij}\) at depths \(z_j\), we fit the model:
