@@ -30,8 +30,7 @@ A Python application with GUI for estimating diffusion coefficients in cylindric
 1. **Radial Distance (r)**: 
    - Measure from the **center** of the initial cylinder (r=0)
    - Input values in millimeters (mm)
-   - Example: For a cylinder with 2mm radius, measurements might be at r = 1, 3, 5, 7, 9, 11 mm
-   - First point (1mm) is inside the cylinder, 2mm is at the boundary, and the rest are outside
+   - Example: For a cylinder with 2mm radius, measurements might be at r = 3, 5, 7, 9, 11 mm
 
 2. **Time Points**:
    - Input times in minutes since the start of diffusion
