@@ -421,8 +421,9 @@ class DiffusionGUI(tk.Tk):
         export_thread.daemon = True
         export_thread.start()
 
+    
     def export_grids(self):
-        """Export grids with progress updates"""
+        """Export radial slices from 2D diffusion fields over time, with interpolation."""
         try:
             # Prepare metadata to write to file
             metadata = {
@@ -433,12 +434,11 @@ class DiffusionGUI(tk.Tk):
                 'Source X0 (mm)': self.x0_var.get(),
                 'Source Y0 (mm)': self.y0_var.get(),
                 'Arena Size (mm)': self.size_var.get(),
-                'Grid Resolution (distance)': 40500,
-                'Grid Resolution (time)': 10800,
+                'Grid Resolution': self.N_var.get(),
                 'Time Duration (s)': int(self.export_time_h_var.get() * 3600),
                 'Frame Rate (Hz)': 0.1
             }
-            
+
             script_dir = os.path.dirname(os.path.abspath(__file__))
             outdir = os.path.join(script_dir, 'output')
             os.makedirs(outdir, exist_ok=True)
@@ -446,64 +446,74 @@ class DiffusionGUI(tk.Tk):
             self.update_status("Preparing calculations...")
             total_seconds = int(self.export_time_h_var.get() * 3600)
             times = [t for t in range(10, total_seconds + 1, 10)]  # 0.1 fps
-            N = self.N_var.get(); conv = self.conv_var.get()
-            a = self.well_var.get() / 1000.0; D = self.D_var.get(); C0 = self.C0_var.get()
+            N = self.N_var.get()
+            a = self.well_var.get() / 1000.0
+            D = self.D_var.get()
+            C0 = self.C0_var.get()
 
-            # Calculate diffusion over time with progress updates
-            self.update_status("Calculating diffusion values...")
-            radii_lin = np.linspace(0, 1, N)
-            concg = np.zeros((len(times), N))
-            distg = np.zeros((len(times), N))
-            
+            rx0 = self.x0_var.get() / 1000.0
+            ry0 = self.y0_var.get() / 1000.0
+            size_m = self.size_var.get() / 1000.0
+            X = np.linspace(0, size_m, N)
+            Y = np.linspace(0, size_m, N)
+            Xg, Yg = np.meshgrid(X, Y)
+            Rg = np.sqrt((Xg - rx0) ** 2 + (Yg - ry0) ** 2)
+
+            # Find column closest to source x position
+            x_index = np.argmin(np.abs(X - rx0))
+
+            conc_gradient = np.zeros((len(times), N))
+            distance_array = np.zeros((len(times), N))
+
+            self.update_status("Calculating diffusion and extracting radial slices...")
             for i, t in enumerate(times):
-                concg[i] = f_diffusion(radii_lin * conv, t, D, C0, a)
-                distg[i] = radii_lin * conv
+                C2d = f_diffusion(Rg, t, D, C0, a)
+                conc_gradient[i, :] = C2d[:, x_index]
+                distance_array[i, :] = Rg[:, x_index]
+
                 # Update progress
                 progress = (i + 1) / len(times) * 100
                 self.calc_progress["value"] = progress
-                if i % 10 == 0:  # Don't update too frequently to avoid UI freeze
-                    self.update_status(f"Calculating: {i+1}/{len(times)} time points ({progress:.1f}%)")
+                if i % 10 == 0:
+                    self.update_status(f"Exporting: {i+1}/{len(times)} frames ({progress:.1f}%)")
                     self.update_idletasks()
 
-            # Interpolation step
-            self.update_status("Interpolating concentration arrays...")
-            self.calc_progress["value"] = 100
-            self.interp_progress["value"] = 10
-            self.update_idletasks()
-            
-            interpolated_conc = interpolate_array(concg, 10800, 40500)
-            self.interp_progress["value"] = 50
-            self.update_status("Interpolating distance arrays...")
-            self.update_idletasks()
-            
-            interpolated_dist = interpolate_array(distg, 10800, 40500)
+            # === Interpolation step ===
+            self.update_status("Interpolating arrays...")
+
+            from scipy.interpolate import interp2d
+
+            def interpolate_array(array, num_pts_time, num_pts_distance):
+                num_time_original = array.shape[0]
+                num_distance_original = array.shape[1]
+                time_indices_original = np.arange(num_time_original)
+                distance_indices_original = np.arange(num_distance_original)
+                new_time_indices = np.linspace(0, num_time_original - 1, num_pts_time)
+                new_distance_indices = np.linspace(0, num_distance_original - 1, num_pts_distance)
+                interpolator = interp2d(distance_indices_original, time_indices_original, array, kind='linear')
+                new_array = interpolator(new_distance_indices, new_time_indices)
+                return new_array
+
+            conc_gradient = interpolate_array(conc_gradient, 10800, 40500)
+            distance_array = interpolate_array(distance_array, 10800, 40500)
+
             self.interp_progress["value"] = 100
             self.update_idletasks()
+            # ==========================
 
-            # File export
-            self.update_status("Saving concentration gradient array...")
-            self.export_progress["value"] = 30
-            self.update_idletasks()
-            np.save(os.path.join(outdir, 'conc_gradient.npy'), interpolated_conc)
-            
-            self.update_status("Saving distance array...")
-            self.export_progress["value"] = 60
-            self.update_idletasks()
-            np.save(os.path.join(outdir, 'distance_array.npy'), interpolated_dist)
-            
-            # Write metadata file
-            self.update_status("Writing metadata...")
-            self.export_progress["value"] = 90
-            self.update_idletasks()
+            # Save arrays
+            self.update_status("Saving arrays...")
+            np.save(os.path.join(outdir, 'conc_gradient.npy'), conc_gradient)
+            np.save(os.path.join(outdir, 'distance_array.npy'), distance_array)
+
             with open(os.path.join(outdir, 'export_info.txt'), 'w') as f:
                 for key, val in metadata.items():
-                    line = str(key) + ": " + str(val) + "\n"
-                    f.write(line)
+                    f.write(f"{key}: {val}\n")
 
+            self.update_status("Export complete.")
             self.export_progress["value"] = 100
-            self.update_status(f"Export complete! Files saved to {outdir}")
-            
-            # Re-enable the export button
+
+            # Re-enable export button
             def enable_button():
                 for widget in self.winfo_children():
                     if isinstance(widget, ttk.Frame):
@@ -514,24 +524,14 @@ class DiffusionGUI(tk.Tk):
                                         for button in grandchild.winfo_children():
                                             if isinstance(button, ttk.Button) and button.cget("text") == "Export Grids":
                                                 button.config(state="normal")
-                messagebox.showinfo("Export Complete", f"Saved grids and info to {outdir}")
-            
-            # Schedule on main thread
+                messagebox.showinfo("Export Complete", f"Saved to {outdir}")
+
             self.after(100, enable_button)
-            
+
         except Exception as e:
             self.update_status(f"Error: {str(e)}")
-            # Re-enable the export button on error
-            for widget in self.winfo_children():
-                if isinstance(widget, ttk.Frame):
-                    for child in widget.winfo_children():
-                        if isinstance(child, ttk.LabelFrame) and child.cget("text") == "Controls & Export":
-                            for grandchild in child.winfo_children():
-                                if isinstance(grandchild, ttk.Frame):
-                                    for button in grandchild.winfo_children():
-                                        if isinstance(button, ttk.Button) and button.cget("text") == "Export Grids":
-                                            button.config(state="normal")
-            messagebox.showerror("Export Error", f"An error occurred: {str(e)}")
+            messagebox.showerror("Export Error", str(e))
+
 
     def save_all_plots(self):
         """Save all plots to files"""
