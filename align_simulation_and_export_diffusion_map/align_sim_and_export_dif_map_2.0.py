@@ -497,6 +497,8 @@ class DiffusionGUI(tk.Tk):
             conc_gradient = interpolate_array(conc_gradient, 10800, 40500)
             distance_array = interpolate_array(distance_array, 10800, 40500)
 
+            distance_array *= 1000  # Convert from meters to millimeters
+
             self.interp_progress["value"] = 100
             self.update_idletasks()
             # ==========================
